@@ -1,10 +1,11 @@
 use std::io::{self, Write};
 use std::process::{Command, exit, Stdio};
-use crate::get_config::{get_scripts, ScriptStruct};
+use crate::config_service::{Config};
+use crate::files_service::{get_file_path_from_script_struct, get_fzf_option_from_script_struct, get_script_struct_from_fzf_option, get_scripts, ScriptStruct};
 
-pub fn launch_script() -> io::Result<()> {
+pub fn launch_script(config: Config) -> io::Result<()> {
     let scripts: Vec<ScriptStruct>;
-    match get_scripts() {
+    match get_scripts(config) {
         Ok(script) => {
             scripts = script;
         }
@@ -14,7 +15,7 @@ pub fn launch_script() -> io::Result<()> {
         }
     }
     let scripts_parsed_string: String = scripts.iter().map(|script: &ScriptStruct| {
-        format!("{} - {} - {}", script.alias, script.module, script.name)
+        get_fzf_option_from_script_struct(script.clone())
     }).collect::<Vec<String>>().join("\n");
     let scripts_parsed = scripts_parsed_string.as_bytes();
 
@@ -38,6 +39,20 @@ pub fn launch_script() -> io::Result<()> {
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     println!("Resultado: {}", stdout);
+
+    if stdout.is_empty() {
+        exit(1);
+    }
+
+    let script_struct: ScriptStruct = get_script_struct_from_fzf_option(stdout.to_string());
+    let file_path: String = get_file_path_from_script_struct(script_struct);
+    println!("File path: {}", file_path);
+
+    let mut execution = Command::new("bash")
+        .arg(file_path)
+        .stdout(Stdio::piped())
+        .spawn()?;
+    execution.wait()?;
 
     Ok(())
 }

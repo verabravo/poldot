@@ -1,38 +1,15 @@
-use std::env;
-use std::ffi::OsString;
-use std::fs::File;
-use std::io::Read;
-
-use serde::Deserialize;
 use walkdir::WalkDir;
 
-const CONFIG_PATH: &str = ".config/poldot/config.json";
+use crate::config_service::{Config, get_config};
 
-#[derive(Deserialize, Debug)]
-struct Directory {
-    alias: String,
-    path: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct Config {
-    directories: Vec<Directory>,
-}
-
+#[derive(Clone)]
 pub struct ScriptStruct {
     pub alias: String,
     pub module: String,
     pub name: String,
 }
 
-pub fn get_scripts() -> Result<Vec<ScriptStruct>, String> {
-    let config: Config;
-    match get_config() {
-        Ok(current_config) => {
-            config = current_config;
-        }
-        Err(err) => return Err(err),
-    }
+pub fn get_scripts(config: Config) -> Result<Vec<ScriptStruct>, String> {
     let mut scripts: Vec<ScriptStruct> = Vec::new();
     for directory in config.directories {
         let directory_path = directory.path;
@@ -40,6 +17,34 @@ pub fn get_scripts() -> Result<Vec<ScriptStruct>, String> {
         scripts.extend(directory_scripts);
     }
     return Ok(scripts);
+}
+
+pub fn get_file_path_from_script_struct(script_struct: ScriptStruct) -> String {
+    let mut file_path: String = "".to_string();
+    for directory in get_config().unwrap().directories {
+        if directory.alias == script_struct.alias {
+            file_path = format!("{}/{}/{}.sh", directory.path, script_struct.module, script_struct.name);
+        }
+    }
+    return file_path;
+}
+
+pub fn get_script_struct_from_fzf_option(fzf_option: String) -> ScriptStruct {
+    let fzf_option = if fzf_option.ends_with("\n") {
+        fzf_option[..fzf_option.len() - 1].to_string()
+    } else {
+        fzf_option
+    };
+    let fzf_option_split: Vec<&str> = fzf_option.split("\t").collect();
+    return ScriptStruct {
+        alias: fzf_option_split[0].to_string(),
+        module: fzf_option_split[1].to_string(),
+        name: fzf_option_split[2].to_string(),
+    };
+}
+
+pub fn get_fzf_option_from_script_struct(script_struct: ScriptStruct) -> String {
+    return format!("{}\t{}\t{}", script_struct.alias, script_struct.module, script_struct.name);
 }
 
 fn get_directory_scripts(directory: String, alias: String) -> Vec<ScriptStruct> {
@@ -65,27 +70,4 @@ fn get_directory_scripts(directory: String, alias: String) -> Vec<ScriptStruct> 
         }
     }
     return scripts;
-}
-
-fn get_config() -> Result<Config, String> {
-    let home_dir: OsString;
-    match env::var_os("HOME") {
-        Some(val) => home_dir = val,
-        None => return Err("$HOME is undefined".to_string())
-    }
-    let filename = format!("{}/{}", home_dir.to_str().unwrap(), CONFIG_PATH);
-    let mut file = match File::open(filename) {
-        Ok(file) => file,
-        Err(err) => return Err(format!("Config file not found: {}", err))
-    };
-    let mut contents = String::new();
-    match file.read_to_string(&mut contents) {
-        Err(_) => return Err("Config file is empty".to_string()),
-        _ => {}
-    }
-
-    return match serde_json::from_str(&contents) {
-        Ok(config) => Ok(config),
-        Err(err) => Err(format!("Error parsing config file, json is not valid: {}", err))
-    }
 }
