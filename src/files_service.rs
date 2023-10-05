@@ -1,6 +1,6 @@
 use walkdir::WalkDir;
 
-use crate::config_service::{Config, get_config};
+use crate::config_service::Config;
 
 #[derive(Clone)]
 pub struct ScriptStruct {
@@ -19,9 +19,9 @@ pub fn get_scripts(config: Config) -> Result<Vec<ScriptStruct>, String> {
     return Ok(scripts);
 }
 
-pub fn get_file_path_from_script_struct(script_struct: ScriptStruct) -> String {
+pub fn get_file_path_from_script_struct(script_struct: ScriptStruct, config: Config) -> String {
     let mut file_path: String = "".to_string();
-    for directory in get_config().unwrap().directories {
+    for directory in config.directories {
         if directory.alias == script_struct.alias {
             file_path = format!("{}/{}/{}.sh", directory.path, script_struct.module, script_struct.name);
         }
@@ -41,6 +41,11 @@ pub fn get_script_struct_from_fzf_option(fzf_option: String) -> ScriptStruct {
         module: fzf_option_split[1].to_string(),
         name: fzf_option_split[2].to_string(),
     };
+}
+
+pub fn is_a_fzf_option(fzf_option: String) -> bool {
+    let fzf_option_split_tabs: Vec<&str> = fzf_option.split("\t").collect();
+    return fzf_option_split_tabs.len() == 3;
 }
 
 pub fn get_fzf_option_from_script_struct(script_struct: ScriptStruct) -> String {

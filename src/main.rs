@@ -16,8 +16,8 @@ fn cli() -> Command {
             .action(ArgAction::SetTrue)
             .default_value("false")
             .required(false))
-        .arg(Arg::new("file_path")
-            .long("file_path")
+        .arg(Arg::new("file")
+            .long("file")
             .required_if_eq("doc_parse", "true"))
 }
 
@@ -35,8 +35,8 @@ fn main() -> io::Result<()> {
     let matches: ArgMatches = cli().get_matches();
     let doc_parse: bool = matches.get_flag("doc_parse");
     if true == doc_parse {
-        let file_path: String = matches.get_one::<String>("file_path").unwrap().to_string();
-        doc_parse::print_documentation(file_path, config);
+        let file_path: String = matches.get_one::<String>("file").unwrap().to_string();
+        let _ = doc_parse::print_documentation(file_path, config);
     } else {
         return app_launcher::launch_script(config);
     }

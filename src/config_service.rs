@@ -7,13 +7,13 @@ use serde::Deserialize;
 
 const CONFIG_PATH: &str = ".config/poldot/config.json";
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Directory {
     pub alias: String,
     pub path: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub directories: Vec<Directory>,
 }

@@ -1,11 +1,12 @@
 use std::io::{self, Write};
 use std::process::{Command, exit, Stdio};
-use crate::config_service::{Config};
+
+use crate::config_service::Config;
 use crate::files_service::{get_file_path_from_script_struct, get_fzf_option_from_script_struct, get_script_struct_from_fzf_option, get_scripts, ScriptStruct};
 
 pub fn launch_script(config: Config) -> io::Result<()> {
     let scripts: Vec<ScriptStruct>;
-    match get_scripts(config) {
+    match get_scripts(config.clone()) {
         Ok(script) => {
             scripts = script;
         }
@@ -23,7 +24,7 @@ pub fn launch_script(config: Config) -> io::Result<()> {
         .arg("--ansi")
         .arg("--prompt=Select an script >")
         .arg("--preview-window=right:50%:wrap")
-        .arg("--preview=poldot --doc_parse --file_path {}")
+        .arg("--preview=poldot --doc_parse --file {}")
         .arg("--layout=reverse")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -45,7 +46,7 @@ pub fn launch_script(config: Config) -> io::Result<()> {
     }
 
     let script_struct: ScriptStruct = get_script_struct_from_fzf_option(stdout.to_string());
-    let file_path: String = get_file_path_from_script_struct(script_struct);
+    let file_path: String = get_file_path_from_script_struct(script_struct, config.clone());
     println!("File path: {}", file_path);
 
     let mut execution = Command::new("bash")
