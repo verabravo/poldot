@@ -39,21 +39,21 @@ pub fn launch_script(config: Config) -> io::Result<()> {
     let output = cmd.wait_with_output()?;
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    println!("Resultado: {}", stdout);
-
     if stdout.is_empty() {
         exit(1);
     }
 
     let script_struct: ScriptStruct = get_script_struct_from_fzf_option(stdout.to_string());
     let file_path: String = get_file_path_from_script_struct(script_struct, config.clone());
-    println!("File path: {}", file_path);
-
-    let mut execution = Command::new("bash")
-        .arg(file_path)
+    println!("Executing: {}", file_path);
+    let execution = Command::new(file_path)
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
-    execution.wait()?;
+
+    let output = execution.wait_with_output()?;
+    println!("{}", String::from_utf8_lossy(&output.stdout));
 
     Ok(())
 }
